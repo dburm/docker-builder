@@ -20,6 +20,8 @@ docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/images:ro \
     bash -c "DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
              --chroot-setup-commands=\"$EXTRACMD\" \
              --chroot-setup-commands=\"apt-get update\" \
-             /srv/source/${SOURCEFILE} && \
-             mv /srv/build /srv/source && \
+             /srv/source/${SOURCEFILE} 2>&1 | tee /srv/build/buildlog.sbuild ;\
+             echo \$? > /srv/build/exitstatus.sbuild ;\
+             rm -rf /srv/source/buildresult ;\
+             mv /srv/build /srv/source/buildresult ;\
              chown -R `id -u`:`id -g` /srv/source"
