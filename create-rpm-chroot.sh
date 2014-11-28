@@ -1,5 +1,5 @@
 #!/bin/bash
-CONTAINERNAME=mockbuild:lastest
+CONTAINERNAME=mockbuild:latest
 CACHEPATH=/var/cache/docker-builder/mock
 DNSPARAM="--dns 172.18.80.136"
 [ -z "${DIST}" ] && DIST=6
