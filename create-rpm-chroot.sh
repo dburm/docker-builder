@@ -1,7 +1,7 @@
 #!/bin/bash
+. $(dirname $(readlink -f $0))/config
 CONTAINERNAME=mockbuild:latest
 CACHEPATH=/var/cache/docker-builder/mock
-DNSPARAM="--dns 172.18.80.136"
 [ -z "${DIST}" ] && DIST=6
 docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}/cache:/var/cache/mock -v ${CACHEPATH}/lib:/var/lib/mock ${CONTAINERNAME} \
     bash -c "chown -R root:mock /var/cache/mock /var/lib/mock; \

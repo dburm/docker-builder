@@ -1,7 +1,7 @@
 #!/bin/bash
+. $(dirname $(readlink -f $0))/config
 CONTAINERNAME=sbuild:latest
 CACHEPATH=/var/cache/docker-builder/sbuild
-DNSPARAM="--dns 172.18.80.136"
 EXTRACMD=":"
 [ -z "$DIST" ] && DIST=precise
 
