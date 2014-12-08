@@ -6,5 +6,5 @@ DNSPARAM="--dns 172.18.80.136"
 docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}/cache:/var/cache/mock -v ${CACHEPATH}/lib:/var/lib/mock ${CONTAINERNAME} \
     bash -c "chown -R root:mock /var/cache/mock /var/lib/mock; \
              chmod -R g+s /var/cache/mock /var/lib/mock; \
-             sed -i 's|%EXTRAREPOURL%|http://fakeurl/|g' /etc/mock/centos${DIST}.cfg ;\
-             sudo -u abuild /usr/bin/mock -r centos${DIST} -v --init"
+             sed -i 's|%EXTRAREPOURL%|http://fakeurl/|g' /etc/mock/centos-${DIST}-x86_64.cfg ;\
+             su - abuild -c 'mock -r centos-${DIST}-x86_64 -v --init'"
