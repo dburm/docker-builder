@@ -2,7 +2,6 @@
 . $(dirname $(readlink -f $0))/config
 CONTAINERNAME=sbuild:latest
 CACHEPATH=/var/cache/docker-builder/sbuild
-EXTRACMD=":"
 [ -z "$DIST" ] && DIST=precise
 
 [ -n "$EXTRAREPO" ] && EXTRACMD="apt-add-repo deb $EXTRAREPO"
@@ -17,11 +16,12 @@ SOURCEPATH=`pwd`
 
 docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/images:ro \
     -v ${SOURCEPATH}:/srv/source ${CONTAINERNAME} \
-    bash -c "DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
+    bash -c "( DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
              --chroot-setup-commands=\"$EXTRACMD\" \
              --chroot-setup-commands=\"apt-get update\" \
-             /srv/source/${SOURCEFILE} 2>&1 | tee /srv/build/buildlog.sbuild ;\
-             echo \$? > /srv/build/exitstatus.sbuild ;\
+             /srv/source/${SOURCEFILE} 2>&1; \
+             echo \$? > /srv/build/exitstatus.sbuild ) \
+             | tee /srv/build/buildlog.sbuild ;\
              rm -rf /srv/source/buildresult ;\
              mv /srv/build /srv/source/buildresult ;\
              chown -R `id -u`:`id -g` /srv/source"

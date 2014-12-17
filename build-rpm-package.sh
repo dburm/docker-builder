@@ -17,13 +17,13 @@ docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/mock:ro \
              sed -i 's|%EXTRAREPOURL%|${EXTRAREPO}|g' /etc/mock/centos-${DIST}-x86_64.cfg ;\
              mkdir -p /home/abuild/rpmbuild/build ;\
              chown -R abuild.mock /home/abuild ;\
-             [[ \$(ls /home/abuild/rpmbuild/\*.src.rpm | wc -l) -eq 0 ]] && \
+             [[ \$(ls /home/abuild/rpmbuild/*.src.rpm | wc -l) -eq 0 ]] && \
                  su - abuild -c 'mock -r centos-${DIST}-x86_64 --no-clean --no-cleanup-after \
                      --sources=/home/abuild/rpmbuild --resultdir=/home/abuild/rpmbuild --buildsrpm \
-                     --spec=\$(ls /home/abuild/rpmbuild/\*.spec)' ;\
+                     --spec=\$(ls /home/abuild/rpmbuild/*.spec)' ;\
              rm -rf /home/abuild/rpmbuild/build ;\
              su - abuild -c 'mock -r centos-${DIST}-x86_64 --no-clean --no-cleanup-after ${ENABLE_EXTRA_REPO} \
-                 --resultdir=/home/abuild/rpmbuild/build \$(ls /home/abuild/rpmbuild/\*.src.rpm)' ;\
+                 --resultdir=/home/abuild/rpmbuild/build \$(ls /home/abuild/rpmbuild/*.src.rpm)' ;\
              echo \$? > /home/abuild/rpmbuild/build/exitstatus.mock ;\
              rm -f /home/abuild/rpmbuild/\*.src.rpm /home/abuild/rpmbuild/{build,root,state}.log;\
              chown -R `id -u`:`id -g` /home/abuild"
