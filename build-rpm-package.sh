@@ -25,5 +25,7 @@ docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/mock:ro \
              su - abuild -c 'mock -r centos-${DIST}-x86_64 --no-clean --no-cleanup-after ${ENABLE_EXTRA_REPO} \
                  --resultdir=/home/abuild/rpmbuild/build \$(ls /home/abuild/rpmbuild/*.src.rpm)' ;\
              echo \$? > /home/abuild/rpmbuild/build/exitstatus.mock ;\
+             umount -f /var/cache/mock /var/lib/mock /srv/tmpfs/cache /srv/tmpfs/lib ;\
+             rm -rf /srv/tmpfs ;\
              rm -f /home/abuild/rpmbuild/\*.src.rpm /home/abuild/rpmbuild/{build,root,state}.log;\
              chown -R `id -u`:`id -g` /home/abuild"
