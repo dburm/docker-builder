@@ -4,8 +4,21 @@ CONTAINERNAME=mockbuild:latest
 CACHEPATH=/var/cache/docker-builder/mock
 [ -z "${DIST}" ] && DIST=6
 
-[ -n "$EXTRAREPO" ] && ENABLE_EXTRA_REPO="--enablerepo=extra"
-[ -z "$EXTRAREPO" ] && EXTRAREPO="http://fakeurl/"
+EXTRACMD=":"
+if [ -n "$EXTRAREPO" ] ; then
+   EXTRACMD="sed -i"
+   OLDIFS="$IFS"
+   IFS='|'
+   for repo in $EXTRAREPO ; do
+     IFS="$OLDIFS"
+     reponame=${repo%%,*}
+     repourl=${repo##*,}
+     EXTRACMD="$EXTRACMD -e \"$ i[${reponame}]\nname=${reponame}\nbaseurl=${repourl}\ngpgcheck=0\nenabled=1\nskip_if_unavailable=1\""
+     IFS='|'
+   done
+   IFS="$OLDIFS"
+   EXTRACMD="$EXTRACMD /etc/mock/centos-${DIST}-x86_64.cfg"
+fi
 
 docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/mock:ro \
     -v $(pwd):/home/abuild/rpmbuild ${CONTAINERNAME} \
@@ -14,7 +27,7 @@ docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/mock:ro \
              mount -t tmpfs overlay /srv/tmpfs/cache ;\
              mount -t aufs -o br=/srv/tmpfs/lib:/srv/mock/lib none /var/lib/mock/ ;\
              mount -t aufs -o br=/srv/tmpfs/cache/:/srv/mock/cache none /var/cache/mock/ ;\
-             sed -i 's|%EXTRAREPOURL%|${EXTRAREPO}|g' /etc/mock/centos-${DIST}-x86_64.cfg ;\
+             $EXTRACMD ;\
              mkdir -p /home/abuild/rpmbuild/build ;\
              chown -R abuild.mock /home/abuild ;\
              [[ \$(ls /home/abuild/rpmbuild/*.src.rpm | wc -l) -eq 0 ]] && \
