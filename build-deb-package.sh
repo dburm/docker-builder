@@ -4,13 +4,25 @@ CONTAINERNAME=sbuild:latest
 CACHEPATH=/var/cache/docker-builder/sbuild
 [ -z "$DIST" ] && DIST=precise
 
-[ -n "$EXTRAREPO" ] && EXTRACMD="apt-add-repo deb $EXTRAREPO"
+if [ -n "$EXTRAREPO" ] ; then
+    EXTRACMD=""
+    OLDIFS="$IFS"
+    IFS='|'
+    for repo in $EXTRAREPO; do
+      IFS="$OLDIFS"
+      EXTRACMD="${EXTRACMD} --chroot-setup-commands=\"apt-add-repo deb $repo\" "
+      IFS='|'
+    done
+    IFS="$OLDIFS"
+fi
+
 if [ `find . -maxdepth 1 -name \*.dsc | wc -l` == 1 ]; then
     SOURCEFILE=`find . -maxdepth 1 -name \*.dsc`
     SOURCEFILE=`basename $SOURCEFILE`
 elif [ -e "`pwd`/debian/changelog" ]; then
     unset SOURCEFILE
 fi
+
 SOURCEPATH=`pwd`
 [ -z "$SOURCEPATH" ] && exit 1
 
@@ -18,7 +30,7 @@ docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/images:ro \
     -v ${SOURCEPATH}:/srv/source ${CONTAINERNAME} \
     bash -c "( DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
              --source --force-orig-source \
-             --chroot-setup-commands=\"$EXTRACMD\" \
+             $EXTRACMD \
              --chroot-setup-commands=\"apt-get update\" \
              /srv/source/${SOURCEFILE} 2>&1; \
              echo \$? > /srv/build/exitstatus.sbuild ) \
