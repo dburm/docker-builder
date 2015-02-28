@@ -2,7 +2,7 @@
 . $(dirname $(readlink -f $0))/config
 CONTAINERNAME=mockbuild:latest
 CACHEPATH=/var/cache/docker-builder/mock
-[ -z "${DIST}" ] && DIST=6
+[ -z "${DIST_VERSION}" ] && DIST_VERSION=6
 
 EXTRACMD=":"
 if [ -n "$EXTRAREPO" ] ; then
@@ -17,7 +17,7 @@ if [ -n "$EXTRAREPO" ] ; then
      IFS='|'
    done
    IFS="$OLDIFS"
-   EXTRACMD="$EXTRACMD /etc/mock/centos-${DIST}-x86_64.cfg"
+   EXTRACMD="$EXTRACMD /etc/mock/centos-${DIST_VERSION}-x86_64.cfg"
 fi
 
 docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/mock:ro \
@@ -31,11 +31,11 @@ docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/mock:ro \
              mkdir -p /home/abuild/rpmbuild/build ;\
              chown -R abuild.mock /home/abuild ;\
              [[ \$(ls /home/abuild/rpmbuild/*.src.rpm | wc -l) -eq 0 ]] && \
-                 su - abuild -c 'mock -r centos-${DIST}-x86_64 --no-clean --no-cleanup-after \
+                 su - abuild -c 'mock -r centos-${DIST_VERSION}-x86_64 --no-clean --no-cleanup-after \
                      --sources=/home/abuild/rpmbuild --resultdir=/home/abuild/rpmbuild --buildsrpm \
                      --spec=\$(ls /home/abuild/rpmbuild/*.spec)' ;\
              rm -rf /home/abuild/rpmbuild/build ;\
-             su - abuild -c 'mock -r centos-${DIST}-x86_64 --no-clean --no-cleanup-after ${ENABLE_EXTRA_REPO} \
+             su - abuild -c 'mock -r centos-${DIST_VERSION}-x86_64 --no-clean --no-cleanup-after \
                  --resultdir=/home/abuild/rpmbuild/build \$(ls /home/abuild/rpmbuild/*.src.rpm)' ;\
              echo \$? > /home/abuild/rpmbuild/build/exitstatus.mock ;\
              umount -f /var/cache/mock /var/lib/mock /srv/tmpfs/cache /srv/tmpfs/lib ;\
