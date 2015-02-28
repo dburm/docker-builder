@@ -17,6 +17,7 @@ SOURCEPATH=`pwd`
 docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/images:ro \
     -v ${SOURCEPATH}:/srv/source ${CONTAINERNAME} \
     bash -c "( DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
+             --source --force-orig-source \
              --chroot-setup-commands=\"$EXTRACMD\" \
              --chroot-setup-commands=\"apt-get update\" \
              /srv/source/${SOURCEFILE} 2>&1; \
