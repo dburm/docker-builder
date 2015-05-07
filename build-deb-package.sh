@@ -2,7 +2,7 @@
 . $(dirname $(readlink -f $0))/config
 CONTAINERNAME=sbuild:latest
 CACHEPATH=/var/cache/docker-builder/sbuild
-[ -z "$DIST" ] && DIST=precise
+[ -z "$DIST" ] && DIST=trusty
 
 if [ -n "$EXTRAREPO" ] ; then
     EXTRACMD=""

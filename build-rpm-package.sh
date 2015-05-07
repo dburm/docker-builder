@@ -2,7 +2,7 @@
 . $(dirname $(readlink -f $0))/config
 CONTAINERNAME=mockbuild:latest
 CACHEPATH=/var/cache/docker-builder/mock
-[ -z "${DIST_VERSION}" ] && DIST_VERSION=6
+[ -z "${DIST_VERSION}" ] && DIST_VERSION=7
 
 EXTRACMD=":"
 if [ -n "$EXTRAREPO" ] ; then

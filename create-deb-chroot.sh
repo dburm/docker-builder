@@ -3,7 +3,7 @@
 CONTAINERNAME=sbuild:latest
 CACHEPATH=/var/cache/docker-builder/sbuild
 MIRROR="http://mirror.yandex.ru/ubuntu"
-[ -z "${DIST}" ] && DIST=precise
+[ -z "${DIST}" ] && DIST=trusty
 docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/images ${CONTAINERNAME} \
     bash -c "rm -f /etc/schroot/chroot.d/*; \
              sbuild-createchroot ${DIST} /srv/images/${DIST}-amd64 ${MIRROR}; \
