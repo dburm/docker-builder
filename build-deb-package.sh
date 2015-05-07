@@ -15,24 +15,23 @@ if [ -n "$EXTRAREPO" ] ; then
     done
     IFS="$OLDIFS"
 fi
+dscfile=$(find . -maxdepth 1 -name \*.dsc | head -1)
+debianfolder=$(find . -wholename "*debian/changelog*" | head -1 | sed 's|^./||; s|debian/changelog||')
 
-if [ `find . -maxdepth 1 -name \*.dsc | wc -l` == 1 ]; then
-    SOURCEFILE=`find . -maxdepth 1 -name \*.dsc`
-    SOURCEFILE=`basename $SOURCEFILE`
-elif [ -e "`pwd`/debian/changelog" ]; then
-    unset SOURCEFILE
+if [ -n "$dscfile" ]; then
+    SOURCEDEST=$dscfile
+    SOURCEDEST=`basename $SOURCEFILE`
+elif [ -n "debianfolder" ] ; then
+    SOURCEDEST=$debianfolder
 fi
 
-SOURCEPATH=`pwd`
-[ -z "$SOURCEPATH" ] && exit 1
-
 docker run ${DNSPARAM} --privileged --rm -v ${CACHEPATH}:/srv/images:ro \
-    -v ${SOURCEPATH}:/srv/source ${CONTAINERNAME} \
+    -v $(pwd):/srv/source ${CONTAINERNAME} \
     bash -c "( DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
              --source --force-orig-source \
              $EXTRACMD \
              --chroot-setup-commands=\"apt-get update\" \
-             /srv/source/${SOURCEFILE} 2>&1; \
+             /srv/source/${SOURCEDEST} 2>&1; \
              echo \$? > /srv/build/exitstatus.sbuild ) \
              | tee /srv/build/buildlog.sbuild ;\
              rm -rf /srv/source/buildresult ;\
