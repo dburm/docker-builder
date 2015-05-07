@@ -4,7 +4,7 @@ CONTAINERNAME=sbuild:latest
 CACHEPATH=/var/cache/docker-builder/sbuild
 MIRROR="http://mirror.yandex.ru/ubuntu"
 [ -z "${DIST}" ] && DIST=trusty
-docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/images ${CONTAINERNAME} \
+docker run ${DNSPARAM} --privileged --rm -v ${CACHEPATH}:/srv/images ${CONTAINERNAME} \
     bash -c "rm -f /etc/schroot/chroot.d/*; \
              sbuild-createchroot ${DIST} /srv/images/${DIST}-amd64 ${MIRROR}; \
              echo deb ${MIRROR} ${DIST} main universe multiverse restricted > /srv/images/${DIST}-amd64/etc/apt/sources.list; \

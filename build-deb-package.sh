@@ -26,7 +26,7 @@ fi
 SOURCEPATH=`pwd`
 [ -z "$SOURCEPATH" ] && exit 1
 
-docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/images:ro \
+docker run ${DNSPARAM} --privileged --rm -v ${CACHEPATH}:/srv/images:ro \
     -v ${SOURCEPATH}:/srv/source ${CONTAINERNAME} \
     bash -c "( DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
              --source --force-orig-source \

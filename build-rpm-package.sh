@@ -20,7 +20,7 @@ if [ -n "$EXTRAREPO" ] ; then
    EXTRACMD="$EXTRACMD /etc/mock/centos-${DIST_VERSION}-x86_64.cfg"
 fi
 
-docker run ${DNSPARAM} -i -t --privileged --rm -v ${CACHEPATH}:/srv/mock:ro \
+docker run ${DNSPARAM} --privileged --rm -v ${CACHEPATH}:/srv/mock:ro \
     -v $(pwd):/home/abuild/rpmbuild ${CONTAINERNAME} \
     bash -x -c "mkdir -p /srv/tmpfs/{lib,cache} ;\
              mount -t tmpfs overlay /srv/tmpfs/lib ;\
