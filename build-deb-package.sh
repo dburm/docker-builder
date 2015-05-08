@@ -20,7 +20,7 @@ debianfolder=$(find . -wholename "*debian/changelog*" | head -1 | sed 's|^./||; 
 
 if [ -n "$dscfile" ]; then
     SOURCEDEST=$dscfile
-    SOURCEDEST=`basename $SOURCEFILE`
+    SOURCEDEST=`basename $SOURCEDEST`
 elif [ -n "debianfolder" ] ; then
     SOURCEDEST=$debianfolder
 fi
