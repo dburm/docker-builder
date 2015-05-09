@@ -27,7 +27,8 @@ fi
 
 docker run ${DNSPARAM} --privileged --rm -v ${CACHEPATH}:/srv/images:ro \
     -v $(pwd):/srv/source ${CONTAINERNAME} \
-    bash -c "( DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
+    bash -c "( sed -i '/debian\/rules/d' /usr/bin/sbuild; \ 
+             DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
              --source --force-orig-source \
              $EXTRACMD \
              --chroot-setup-commands=\"apt-get update\" \
