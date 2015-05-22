@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/bin/bash -ex
 . $(dirname $(readlink -f $0))/config
 CONTAINERNAME=mockbuild:latest
 CACHEPATH=/var/cache/docker-builder/mock
+DIST_VERSION=`echo $DIST | sed 's|centos||'`
 [ -z "${DIST_VERSION}" ] && DIST_VERSION=7
 
 EXTRACMD=":"
@@ -35,7 +36,7 @@ docker run ${DNSPARAM} --privileged --rm -v ${CACHEPATH}:/srv/mock:ro \
                      --sources=/home/abuild/rpmbuild --resultdir=/home/abuild/rpmbuild --buildsrpm \
                      --spec=\$(ls /home/abuild/rpmbuild/*.spec)' ;\
              rm -rf /home/abuild/rpmbuild/build ;\
-             su - abuild -c 'mock -r centos-${DIST_VERSION}-x86_64 --no-clean --no-cleanup-after \
+             su - abuild -c 'mock -r centos-${DIST_VERSION}-x86_64 --no-clean --no-cleanup-after --verbose \
                  --resultdir=/home/abuild/rpmbuild/build \$(ls /home/abuild/rpmbuild/*.src.rpm)' ;\
              echo \$? > /home/abuild/rpmbuild/build/exitstatus.mock ;\
              umount -f /var/cache/mock /var/lib/mock /srv/tmpfs/cache /srv/tmpfs/lib ;\

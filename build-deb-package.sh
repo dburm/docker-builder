@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 . $(dirname $(readlink -f $0))/config
 CONTAINERNAME=sbuild:latest
 CACHEPATH=/var/cache/docker-builder/sbuild
@@ -27,7 +27,7 @@ fi
 
 docker run ${DNSPARAM} --privileged --rm -v ${CACHEPATH}:/srv/images:ro \
     -v $(pwd):/srv/source ${CONTAINERNAME} \
-    bash -c "( sed -i '/debian\/rules/d' /usr/bin/sbuild; \ 
+    bash -c "( sed -i '/debian\/rules/d' /usr/bin/sbuild; \
              DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
              --source --force-orig-source \
              $EXTRACMD \
