@@ -15,7 +15,7 @@ RUN rm /etc/apt/sources.list.d/proposed.list ;\
     echo "deb $MIRROR $DIST main universe multiverse restricted" > /etc/apt/sources.list ;\
     echo "deb $MIRROR $DIST-updates main universe multiverse restricted" >> /etc/apt/sources.list ;\
     apt-get update ;\
-    apt-get -y install sbuild debhelper ;\
+    apt-get -y install sbuild debhelper git-buildpackage ;\
     apt-get clean ;\
     mkdir -p /srv/build ;\
     sed -i '/^1/d' /etc/sbuild/sbuild.conf ;\
