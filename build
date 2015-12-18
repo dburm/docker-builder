@@ -170,6 +170,7 @@ main () {
                         rm -rf /etc/mock
                         mkdir -p /var/cache/mock/configs
                         ln -s /var/cache/mock/configs /etc/mock
+                        rm -rf /var/cache/mock/${ROOT_NAME}/yum_cache
                         echo 'Current config file:'
                         cat /etc/mock/${DIST}.cfg
                         chown -R abuild:mock /var/cache/mock
