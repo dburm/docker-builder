@@ -9,6 +9,8 @@ source ${BIN_DIR}/functions/docker-functions || exit 1
 main () {
     local repos=()
     local pins=()
+    local pinpkgs=()
+    local pinprios=()
     local KEEP_CHROOT=true
     # Parse parameters
     while test -n "$1" ; do
@@ -48,11 +50,18 @@ main () {
             local repos[${#repos[@]}]="$2";
             shift 2;
             ;;
-# TODO: Implement supporting apt pinning
-#        --pin|-p)
-#            local pins[${#pins[@]}]="$2";
-#            shift 2;
-#            ;;
+        --pin)
+            local pins[${#pins[@]}]="$2";
+            shift 2;
+            ;;
+        --pin-package)
+            local pinpkgs[${#pinpkgs[@]}]="$2";
+            shift 2;
+            ;;
+        --pin-priority)
+            local pinprios[${#pinprios[@]}]="$2";
+            shift 2;
+            ;;
         --dist|-d)
             local DIST="$2";
             shift 2;
@@ -72,6 +81,9 @@ main () {
     done
 
     [ -z "${DIST}" ] && fail_exit "ERROR: Distribution is not specified"
+    [ ${#pins[@]} -ne ${#pinpkgs[@]} \
+        -o ${#pins[@]} -ne ${#pinprios[@]} ] \
+        && fail_exit "ERROR: Inconsistent Apt pinning options"
 
     local CONFIG_DIR=${CONFIG_DIR:-${BIN_DIR}/conf}
     local SOURCE_PATH=${SOURCE_PATH:-`pwd`}

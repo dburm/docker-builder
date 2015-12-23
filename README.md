@@ -31,7 +31,14 @@ Also it worth to configure effective user to run docker without sudo.
     --repository, --repo, -r URL[,rpm-priority]
         Use additional package repository at URL. Supported formats
         are rpm and debian. `rpm-priority` is an integer, and makes
-        sense for rpm repositories only
+        sense for rpm repositories only. This option can be used
+        multiple times
+
+    --pin [PIN_STRING]
+    --pin-package [PIN_PACKAGE_STRING]
+    --pin-priority [PIN_PRIORITY_STRING]
+        Options to set up apt pinning rules. This options can be used
+        multiple times
 
     --dist, -d DISTRIBUTION
         Distribution to use
@@ -53,4 +60,7 @@ $ ./build --dist centos7 --repository http://some.custom.repo/os --verbose --bui
 ```
 ```
 $ ./build --dist centos7 --shell
+```
+```
+$ ./build --dist trusty --build --pin-package "*" --pin "release a=stable, v=7" --pin-priority "900" --shell
 ```

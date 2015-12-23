@@ -40,6 +40,9 @@ docker_init_sbuild() {
             echo '#!/bin/bash' > /srv/images/${ROOT_NAME}/usr/bin/apt-add-repo
             echo 'echo \$* >> /etc/apt/sources.list' >> /srv/images/${ROOT_NAME}/usr/bin/apt-add-repo
             chmod +x /srv/images/${ROOT_NAME}/usr/bin/apt-add-repo
+            echo '#!/bin/bash' > /srv/images/${ROOT_NAME}/usr/bin/set-apt-prefs
+            echo 'echo \$* | base64 -d > /etc/apt/preferences' >> /srv/images/${ROOT_NAME}/usr/bin/set-apt-prefs
+            chmod +x /srv/images/${ROOT_NAME}/usr/bin/set-apt-prefs
             sbuild-update -udcar ${DIST}"
 }
 
@@ -158,6 +161,19 @@ docker_build_sbuild() {
     for repo_id in $(seq 0 $(( ${#repos[@]} - 1 ))) ; do
         ADD_REPO_CMD="${ADD_REPO_CMD} --chroot-setup-commands=\"apt-add-repo deb ${repos[${repo_id}]}\" "
     done
+    ## Parse Apt pinning options
+    unset PIN_CONTENT
+    if [ ${#pins[@]} -gt 0 ] ; then
+        for pin_id in $(seq 0 $(( ${#pins[@]} - 1 ))) ; do
+            local PIN_CONTENT="${PIN_CONTENT}Package: ${pinpkgs[${pin_id}]}\nPin: ${pins[${pin_id}]}\nPin-Priority: ${pinprios[${pin_id}]}\n"
+        done
+    fi
+    unset PIN_CONTENT_BASE64
+    [ -n "${PIN_CONTENT}" ] \
+        && PIN_CONTENT_BASE64=$(echo -e "${PIN_CONTENT}" | base64 -w0)
+    unset SET_APT_PREFS_CMD
+    [ -n "${PIN_CONTENT_BASE64}" ] \
+        && local SET_APT_PREFS_CMD="--chroot-setup-commands=\"set-apt-prefs ${PIN_CONTENT_BASE64}\""
     ##
     local SBUILD_OPTS="--nolog --source --force-orig-source"
     if [ "$KEEP_CHROOT" = "true" ] ; then
@@ -186,6 +202,7 @@ docker_build_sbuild() {
               DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} \
                   ${SBUILD_OPTS} \
                   ${ADD_REPO_CMD} \
+                  ${SET_APT_PREFS_CMD} \
                   --chroot-setup-commands=\"apt-get update\" \
                   --chroot-setup-commands=\"apt-get upgrade -f -y --force-yes\" \
                   /srv/source/${SOURCE_TARGET} 2>&1
