@@ -4,19 +4,21 @@ set -o errexit
 
 BIN_DIR=$(dirname `readlink -e $0`)
 source ${BIN_DIR}/functions/build-functions || exit 1
+source ${BIN_DIR}/functions/docker-functions || exit 1
 
 main () {
     local repos=()
     local pins=()
+    # Parse parameters
     while test -n "$1" ; do
         case "$1" in
         --config-dir|-c)
             local CONFIG_DIR=$2
             shift 2
             ;;
-        --use-tmpfs)
+        --keep-chroot| -k)
             shift
-            local USE_TMPFS=true
+            local KEEP_CHROOT=true
             ;;
         --verbose|-v)
             shift
@@ -45,6 +47,7 @@ main () {
             local repos[${#repos[@]}]="$2";
             shift 2;
             ;;
+# TODO: Implement supporting apt pinning
 #        --pin|-p)
 #            local pins[${#pins[@]}]="$2";
 #            shift 2;
@@ -76,6 +79,7 @@ main () {
     if [ "${ACTION_SHELL}" == "true" ] ; then
         unset ACTION_INIT
         unset ACTION_UPDATE
+        local KEEP_CHROOT=true
     fi
 
     [ -e "${CONFIG_DIR}/common.conf" ] \
@@ -99,7 +103,7 @@ main () {
         docker build -t ${CONTAINER_NAME%%:*} \
             ${CONFIG_DIR}/${CONTAINER_NAME%%:*}/
     fi
-    job_lock ${LOCK_FILE} uset
+    job_lock ${LOCK_FILE} unset
 
     # Check chroot
     local LOCK_FILE=/tmp/${ROOT_NAME}.lock
@@ -111,48 +115,10 @@ main () {
     if [ "${ACTION_INIT}" == "true" ] ; then
         case $TYPE in
             mock)
-                local CONFIG_CONTENT_BASE64=$(echo "${CONFIG_CONTENT}" | base64 -w0)
-                docker run ${DOCKER_OPTS} --privileged --rm \
-                    -v ${CACHE_DIR}:/var/cache/mock ${CONTAINER_NAME} \
-                    bash ${BASH_OPTS} -c "
-                        mkdir -p /var/cache/mock/configs
-                        cp /etc/mock/logging.ini /var/cache/mock/configs/
-                        rm -rf /etc/mock
-                        rm -f /var/cache/mock/configs/${DIST}.cfg
-                        rm -rf /var/cache/mock/${ROOT_NAME}
-                        ln -s /var/cache/mock/configs /etc/mock
-                        echo \"${CONFIG_CONTENT_BASE64}\" \
-                            | base64 -d > /etc/mock/${DIST}.cfg
-                        [ x$USE_TMPFS != xtrue ] \
-                            && sed '/tmpfs_enable/s/True/False/' \
-                                -i /etc/mock/${DIST}.cfg
-                        echo 'Current config file:'
-                        cat /etc/mock/${DIST}.cfg
-                        chown -R abuild:mock /var/cache/mock
-                        chmod g+s /var/cache/mock
-                        su - abuild -c \
-                            'mock -r ${DIST} ${MOCK_OPTS} --init'"
+                docker_init_mock
                 ;;
             sbuild)
-                local MIRROR=$(echo "${APT_SOURCES_CONTENT}" | fgrep deb | head -1 | awk '{print $2}')
-                docker run ${DOCKER_OPTS} --privileged --rm \
-                    -v ${CACHE_DIR}:/srv/images ${CONTAINER_NAME} \
-                    bash ${BASH_OPTS} -c "
-                        mkdir -p /srv/images/chroot.d
-                        rm -rf /etc/schroot/chroot.d
-                        ln -s /srv/images/chroot.d /etc/schroot/chroot.d
-                        rm -rf /srv/images/${ROOT_NAME}
-                        rm -f /etc/schroot/chroot.d/${ROOT_NAME}*
-                        sbuild-createchroot ${DIST} /srv/images/${ROOT_NAME} ${MIRROR}
-                        mv /etc/schroot/chroot.d/${ROOT_NAME}* /etc/schroot/chroot.d/${ROOT_NAME}
-                        [ x$USE_TMPFS == xtrue ] \
-                            && echo 'union-type=aufs' >> /etc/schroot/chroot.d/${ROOT_NAME} \
-                            || sed '/union-type=aufs/d' -i /etc/schroot/chroot.d/${ROOT_NAME}
-                        echo \"$APT_SOURCES_CONTENT\" > /srv/images/${ROOT_NAME}/etc/apt/sources.list
-                        sbuild-update -udcar ${DIST}
-                        echo '#!/bin/bash' > /srv/images/${ROOT_NAME}/usr/bin/apt-add-repo
-                        echo 'echo \$* >> /etc/apt/sources.list' >> /srv/images/${ROOT_NAME}/usr/bin/apt-add-repo
-                        chmod +x /srv/images/${ROOT_NAME}/usr/bin/apt-add-repo"
+                docker_init_sbuild
                 ;;
             *)
                 fail_exit "CONFIG ERROR: Unsupported distribution type"
@@ -164,33 +130,10 @@ main () {
     if [ "${ACTION_UPDATE}" == "true" ] ; then
         case ${TYPE} in
             mock)
-                docker run ${DOCKER_OPTS} --privileged --rm \
-                    -v ${CACHE_DIR}:/var/cache/mock ${CONTAINER_NAME} \
-                    bash ${BASH_OPTS} -c "
-                        rm -rf /etc/mock
-                        mkdir -p /var/cache/mock/configs
-                        ln -s /var/cache/mock/configs /etc/mock
-                        rm -rf /var/cache/mock/${ROOT_NAME}/yum_cache
-                        echo 'Current config file:'
-                        cat /etc/mock/${DIST}.cfg
-                        chown -R abuild:mock /var/cache/mock
-                        chmod g+s /var/cache/mock
-                        su - abuild -c \
-                            'mock -r ${DIST} ${MOCK_OPTS} --update'"
+                docker_update_mock
                 ;;
             sbuild)
-                local MIRROR=$(echo "${APT_SOURCES_CONTENT}" | fgrep deb | head -1 | awk '{print $2}')
-                docker run ${DOCKER_OPTS} --privileged --rm \
-                    -v ${CACHE_DIR}:/srv/images ${CONTAINER_NAME} \
-                    bash ${BASH_OPTS} -c "
-                        mkdir -p /srv/images/chroot.d
-                        rm -rf /etc/schroot/chroot.d
-                        ln -s /srv/images/chroot.d /etc/schroot/chroot.d
-                        [ x$USE_TMPFS == xtrue ] \
-                            && echo 'union-type=aufs' >> /etc/schroot/chroot.d/${ROOT_NAME} \
-                            || sed '/union-type=aufs/d' -i /etc/schroot/chroot.d/${ROOT_NAME}
-                        echo \"$APT_SOURCES_CONTENT\" > /srv/images/${ROOT_NAME}/etc/apt/sources.list
-                        sbuild-update -udcar ${DIST}"
+                docker_update_sbuild
                 ;;
             *)
                 fail_exit "CONFIG ERROR: Unsupported distribution type"
@@ -206,108 +149,10 @@ main () {
     if [ "${ACTION_BUILD}" == "true" ] ; then
         case ${TYPE} in
             mock)
-               [ $(ls -1 ${SOURCE_PATH}/*.{src.rpm,spec} 2>/dev/null | wc -l) -eq 0 ] \
-                   && fail_exit "ERROR: No RPM sources found at ${SOURCE_PATH}"
-               ## Parse additional repositories
-               for repo in ${repos[@]} ; do
-                   local reponame=$(mktemp -u XXXXXXXX)
-                   local repourl=${repo%%,*}
-                   local priority=${repo##*,}
-                   if [ "$priority" == "repourl" ] ; then
-                       unset priority
-                   else
-                       priority="priority=$priority\n"
-                   fi
-                   local ADD_REPO_CMD="$EXTRACMD -e \"/^\[base\]/i[${reponame}]\nname=${reponame}\nbaseurl=${repourl}\ngpgcheck=0\nenabled=1\nskip_if_unavailable=1\n${priority}\""
-               done
-               [ ${#repos[@]} -gt 0 ] \
-                   && ADD_REPO_CMD="sed $ADD_REPO_CMD -i /etc/mock/${DIST}.cfg"
-               ##
-               [ "$USE_TMPFS" != "true" ] \
-                   && local DOCKER_OPTS="${DOCKER_OPTS} -v ${ROOT_DIR}:/var/lib/mock"
-               local CLEANUP_SCRIPT=$(cat ${BIN_DIR}/functions/cleanup-functions | base64 -w0)
-               docker run ${DOCKER_OPTS} --privileged --rm \
-                   -v ${CACHE_DIR}:/srv/mock/cache:ro \
-                   -v ${SOURCE_PATH}:/home/abuild/rpmbuild \
-                   -v ${DEST_PATH}:/home/abuild/buildresult \
-                   ${CONTAINER_NAME} \
-                   bash ${BASH_OPTS} -c "
-                       echo ${CLEANUP_SCRIPT} | base64 -d > /cleanup
-                       sed -e 's|%ROOT_NAME%|${ROOT_NAME}|g' \
-                           -e 's|%TYPE%|${TYPE}|g' \
-                           -e 's|%UNAME%|${UNAME}|g' \
-                           -e 's|%GNAME%|${GNAME}|g' \
-                           -i /cleanup
-                       source /cleanup
-                       rm -rf /var/lib/mock/${ROOT_NAME}
-                       mkdir -p /srv/tmpfs/cache
-                       mount -t tmpfs overlay /srv/tmpfs/cache
-                       mount -t aufs -o br=/srv/tmpfs/cache/:/srv/mock/cache \
-                           none /var/cache/mock/
-                       rm -rf /etc/mock
-                       ln -s /var/cache/mock/configs /etc/mock
-                       ${ADD_REPO_CMD}
-                       echo 'Current config file:'
-                       cat /etc/mock/${DIST}.cfg
-                       su - abuild -c 'mock -r ${DIST} ${MOCK_OPTS} --update'
-                       chown -R abuild.mock /home/abuild
-                       [[ \$(ls /home/abuild/rpmbuild/*.src.rpm | wc -l) -eq 0 ]] \
-                           && su - abuild -c 'mock -r ${DIST} --no-clean \
-                              --no-cleanup-after --buildsrpm \
-                              --sources=/home/abuild/rpmbuild \
-                              --spec=\$(ls /home/abuild/rpmbuild/*.spec) \
-                              --resultdir=/home/abuild/rpmbuild ${MOCK_OPTS}'
-                       rm -rf /home/abuild/rpmbuild/build
-                       su - abuild -c 'mock -r ${DIST} --no-clean \
-                            --no-cleanup-after ${MOCK_OPTS} \
-                            --resultdir=/home/abuild/buildresult \
-                            \$(ls /home/abuild/rpmbuild/*.src.rpm)'
-                       echo \$? > /home/abuild/rpmbuild/build/exitstatus.mock"
+                docker_build_mock
                 ;;
             sbuild)
-                find ${SOURCE_PATH} | egrep "(debian/rules|\.dsc)$" &>/dev/null \
-                    || fail_exit "ERROR: No DEB sources found at ${SOURCE_PATH}"
-                local SOURCE_TARGET=$(find ${SOURCE_PATH} | egrep "(debian/rules|\.dsc)$" 2>/dev/null)
-                [ "${SOURCE_TARGET##*/}" == "rules" ] \
-                    && SOURCE_TARGET=$(basename $(dirname $(dirname ${SOURCE_TARGET}))) \
-                    || SOURCE_TARGET=$(basename ${SOURCE_TARGET})
-                ## Parse additional repositories
-                for repo in ${repos[@]} ; do
-                    ADD_REPO_CMD="${ADD_REPO_CMD} --chroot-setup-commands=\"apt-add-repo deb ${repo//|/ }\" "
-                done
-                ##
-                #[ "$USE_TMPFS" != "true" ] \
-                #    && local DOCKER_OPTS="${DOCKER_OPTS} -v ${ROOT_DIR}:/var/lib/schroot/mount"
-                local CLEANUP_SCRIPT=$(cat ${BIN_DIR}/functions/cleanup-functions | base64 -w0)
-                docker run ${DOCKER_OPTS} --privileged --rm \
-                    -v ${CACHE_DIR}:/srv/images:ro \
-                    -v ${SOURCE_PATH}:/srv/source \
-                    -v ${DEST_PATH}:/srv/build \
-                    ${CONTAINER_NAME} \
-                    bash ${BASH_OPTS} -c "
-                        echo ${CLEANUP_SCRIPT} | base64 -d > /cleanup
-                        sed -e 's|%ROOT_NAME%|${ROOT_NAME}|g' \
-                            -e 's|%TYPE%|${TYPE}|g' \
-                            -e 's|%UNAME%|${UNAME}|g' \
-                            -e 's|%GNAME%|${GNAME}|g' \
-                            -i /cleanup
-                        source /cleanup
-                        rm -rf /etc/schroot/chroot.d
-                        ln -s /srv/images/chroot.d /etc/schroot/chroot.d
-                        ls -la /srv/source/${SOURCE_TARGET}/
-                        [ x$USE_TMPFS != xtrue ] \
-                            && rm -f /etc/schroot/setup.d/04tmpfs
-                        ( sed -i '/debian\/rules/d' /usr/bin/sbuild
-                          DEB_BUILD_OPTIONS=nocheck /usr/bin/sbuild -d ${DIST} --nolog \
-                              --source --force-orig-source \
-                              ${ADD_REPO_CMD} \
-                              ${SBUILD_OPTS} \
-                              --chroot-setup-commands=\"apt-get update\" \
-                              --chroot-setup-commands=\"apt-get upgrade -f -y --force-yes\" \
-                              /srv/source/${SOURCE_TARGET}/ 2>&1
-                          echo \$? > /srv/build/exitstatus.sbuild ) \
-                              | tee /srv/build/buildlog.sbuild
-                        "
+                docker_build_sbuild
                 ;;
             *)
                 fail_exit "CONFIG ERROR: Unsupported distribution type"
@@ -317,40 +162,16 @@ main () {
 
     # Get into buildroot
     if [ "${ACTION_SHELL}" == "true" ] ; then
-        [ ! -d "${ROOT_DIR}/${ROOT_NAME}/root/bin" ] \
-            && fail_exit "ERROR: There is no buildroot for ${DIST}"
         case ${TYPE} in
             mock)
-               local CLEANUP_SCRIPT=$(cat ${BIN_DIR}/functions/cleanup-functions | base64 -w0)
-               local DOCKER_OPTS="${DOCKER_OPTS} -v ${ROOT_DIR}:/var/lib/mock"
-               docker run ${DOCKER_OPTS} -ti --privileged --rm \
-                   -v ${CACHE_DIR}:/var/cache/mock:ro \
-                   -v ${SOURCE_PATH}:/home/abuild/rpmbuild \
-                   ${CONTAINER_NAME} \
-                   bash ${BASH_OPTS} -c "
-                       echo ${CLEANUP_SCRIPT} | base64 -d > /cleanup
-                       sed -e 's|%ROOT_NAME%|${ROOT_NAME}|g' \
-                           -e 's|%TYPE%|${TYPE}|g' \
-                           -e 's|%UNAME%|${UNAME}|g' \
-                           -e 's|%GNAME%|${GNAME}|g' \
-                           -i /cleanup
-                       source /cleanup
-                       mount -n -t proc proc /var/lib/mock/${ROOT_NAME}/root/proc
-                       mount -n -t sysfs sysfs /var/lib/mock/${ROOT_NAME}/root/sys
-                       mount -n -t tmpfs tmpfs /var/lib/mock/${ROOT_NAME}/root/dev/shm
-                       mount -n -t devpts -o gid=5,mode=0620,ptmxmode=0666,newinstance devpts /var/lib/mock/${ROOT_NAME}/root/dev/pts
-                       mount -n --bind /var/cache/mock/${ROOT_NAME}/yum_cache/ /var/lib/mock/${ROOT_NAME}/root/var/cache/yum
-                       mount -n --bind /var/cache/mock/${ROOT_NAME}/ccache/u1000/ /var/lib/mock/${ROOT_NAME}/root/tmp/ccache
-                       chroot /var/lib/mock/${ROOT_NAME}/root \
-                           /bin/bash -c 'export LANG=en_US.UTF-8
-                               export HOME=/builddir
-                               export CCACHE_DIR=/tmp/ccache
-                               export CCACHE_UMASK=002
-                               cd \${HOME}/build
-                               bash'
-                       "
+                [ ! -d "${ROOT_DIR}/${ROOT_NAME}/root/etc" ] \
+                    && fail_exit "ERROR: There is no buildroot for ${DIST}"
+                docker_shell_mock
                 ;;
             sbuild)
+                [ ! -d "${ROOT_DIR}/${ROOT_NAME}/build" ] \
+                    && fail_exit "ERROR: There is no buildroot for ${DIST}"
+                docker_shell_sbuild
                 ;;
             *)
                 fail_exit "CONFIG_ERROR: Unsupported distribution type"

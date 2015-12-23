@@ -26,7 +26,13 @@ cleanup_mounts()
            chown -R ${UNAME}:${GNAME} /home/abuild
            ;;
        sbuild)
-           chown -R ${UNAME}:${GNAME} /srv/source /srv/build
+           umount -n -l /srv/root/dev/pts 2> /dev/null || true
+           umount -n -l /srv/root/dev/shm 2> /dev/null || true
+           umount -n -l /srv/root/sys 2> /dev/null || true
+           umount -n -l /srv/root/proc 2> /dev/null || true
+           umount -n -l /srv/root 2> /dev/null || true
+           schroot -e --all-sessions 2> /dev/null || true
+           chown -R ${UNAME}:${GNAME} /srv/source /srv/build 2> /dev/null || true
            ;;
        *)
            ;;
