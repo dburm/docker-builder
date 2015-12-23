@@ -180,6 +180,6 @@ main () {
     fi
 }
 
-main $@
+main "$@"
 
 cleanup_and_exit 0

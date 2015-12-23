@@ -155,8 +155,8 @@ docker_build_sbuild() {
         && SOURCE_TARGET=$(basename $(dirname $(dirname ${SOURCE_TARGET})))/ \
         || SOURCE_TARGET=$(basename ${SOURCE_TARGET})
     ## Parse additional repositories
-    for repo in ${repos[@]} ; do
-        ADD_REPO_CMD="${ADD_REPO_CMD} --chroot-setup-commands=\"apt-add-repo deb ${repo//|/ }\" "
+    for repo_id in $(seq 0 $(( ${#repos[@]} - 1 ))) ; do
+        ADD_REPO_CMD="${ADD_REPO_CMD} --chroot-setup-commands=\"apt-add-repo deb ${repos[${repo_id}]}\" "
     done
     ##
     local SBUILD_OPTS="--nolog --source --force-orig-source"
