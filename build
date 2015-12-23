@@ -9,6 +9,7 @@ source ${BIN_DIR}/functions/docker-functions || exit 1
 main () {
     local repos=()
     local pins=()
+    local KEEP_CHROOT=true
     # Parse parameters
     while test -n "$1" ; do
         case "$1" in
@@ -16,9 +17,9 @@ main () {
             local CONFIG_DIR=$2
             shift 2
             ;;
-        --keep-chroot| -k)
+        --no-keep-chroot| -n)
             shift
-            local KEEP_CHROOT=true
+            unset KEEP_CHROOT
             ;;
         --verbose|-v)
             shift

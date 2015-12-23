@@ -10,8 +10,8 @@ Also it worth to configure effective user to run docker without sudo.
     --config-dir, -c PATH_TO_CONFIG_FOLDER
         Path to config folder
 
-    --keep-chroot, -k
-        Do not remove build root for shell purpose
+    --no-keep-chroot, -n
+        Remove build root after build stage
 
     --verbose, -v
         Be more verbose
