@@ -1,5 +1,14 @@
 # Docker package builder
 
+This tool was developed as an alternative to [OBS build](https://github.com/openSUSE/obs-build) package builder.
+
+The goals of this projects:
+
+- ability to build packages for rpm and deb based distributions
+- packages should be built in native way in isolated environment against updated upstream state
+- ability to run build stage for different distributions in parallel on the same node
+- ability to get root shell at build root for debugging purpose
+
 ## Prerequisites
 
 The `Docker package builder` requires preinstalled [Docker](https://www.docker.com).
