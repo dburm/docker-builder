@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-The Docker package builder requires preinstalled [Docker](https://www.docker.com).
-Also it worth to configure effective user to run docker without sudo.
+The `Docker package builder` requires preinstalled [Docker](https://www.docker.com).
+Also it worth to configure user to run docker without **sudo**.
 
 ## Parameters
 
@@ -30,9 +30,9 @@ Also it worth to configure effective user to run docker without sudo.
 
     --repository, --repo, -r URL[,rpm-priority]
         Use additional package repository at URL. Supported formats
-        are rpm and debian. `rpm-priority` is an integer, and makes
-        sense for rpm repositories only. This option can be used
-        multiple times
+        are rpm and debian. This option can be used multiple times.
+        `rpm-priority` is an integer, and makes sense for rpm
+        repositories only.
 
     --pin [PIN_STRING]
     --pin-package [PIN_PACKAGE_STRING]
@@ -44,7 +44,7 @@ Also it worth to configure effective user to run docker without sudo.
         Distribution to use
 
     --source, --src PATH_TO_SOURCES
-        Path to package source. Current directory if unspecified
+        Path to package source. Current directory if not specified
 
     --output, -o
         Path to folder for build results. Default is buildresult/ inside
