@@ -46,6 +46,10 @@ main () {
             shift
             local ACTION_INIT=true
             ;;
+        --no-init)
+            shift
+            local NO_INIT=true
+            ;;
         --repository|--repo|-r)
             local repos[${#repos[@]}]="$2";
             shift 2;
@@ -75,7 +79,7 @@ main () {
             shift 2;
             ;;
         *)
-            break
+            fail_exit "ERROR: Unknow parameter \`$1\`"
             ;;
         esac
     done
@@ -89,12 +93,6 @@ main () {
     local SOURCE_PATH=${SOURCE_PATH:-`pwd`}
     local DEST_PATH=${DEST_PATH:-${SOURCE_PATH}/buildresult}
 
-    if [ "${ACTION_SHELL}" == "true" ] ; then
-        unset ACTION_INIT
-        unset ACTION_UPDATE
-        local KEEP_CHROOT=true
-    fi
-
     [ -e "${CONFIG_DIR}/common.conf" ] \
         && source ${CONFIG_DIR}/common.conf
 
@@ -107,7 +105,10 @@ main () {
     local LOCK_FILE=/tmp/${CONTAINER_NAME%%:*}.lock
     job_lock ${LOCK_FILE} wait 3600
     [ $(docker images | egrep -c "^${CONTAINER_NAME%%:*}") -eq 0 ] \
-        && BUILD_DOCKER_IMAGE=true
+        && local BUILD_DOCKER_IMAGE=true
+
+    [ "${BUILD_DOCKER_IMAGE}" = "true" -a "${NO_INIT}" = "true" ] \
+        && fail_exit "ERROR: Can't find docker image for ${CONTAINER_NAME%%:*}"
 
     # Build docker image
     [ ! -f "${CONFIG_DIR}/${CONTAINER_NAME%%:*}/Dockerfile" ] \
@@ -124,6 +125,8 @@ main () {
     [ ! -d "${CACHE_DIR}/${ROOT_NAME}" ] && local ACTION_INIT=true
     [ "${ACTION_INIT}" == "true" ] && unset ACTION_UPDATE
 
+    [ "${ACTION_INIT}" = "true" -a "${NO_INIT}" = "true" ] \
+        && fail_exit "ERROR: Can't find chroot for ${DIST}"
     # Init chroot
     if [ "${ACTION_INIT}" == "true" ] ; then
         case $TYPE in
@@ -140,6 +143,7 @@ main () {
     fi
 
     # Update chroot
+    [ "${NO_INIT}" = "true" ] && unset ACTION_UPDATE
     if [ "${ACTION_UPDATE}" == "true" ] ; then
         case ${TYPE} in
             mock)

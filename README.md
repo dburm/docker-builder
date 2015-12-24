@@ -11,7 +11,8 @@ Also it worth to configure user to run docker without **sudo**.
         Path to config folder
 
     --no-keep-chroot, -n
-        Remove build root after build stage
+        Remove build root after build stage. Useful in purpose of
+        CI/automation
 
     --verbose, -v
         Be more verbose
@@ -26,7 +27,12 @@ Also it worth to configure user to run docker without **sudo**.
         Start a root shell in the build root
 
     --init, -i
-        Initialize a build root for selected distribution
+        Initialize a chroot for selected distribution
+
+    --no-init
+        Exit with error if chroot or docker image for selected
+        distribution doesn't exist. Useful in purpose of
+        CI/automation
 
     --repository, --repo, -r URL[,rpm-priority]
         Use additional package repository at URL. Supported formats
