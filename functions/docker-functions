@@ -86,12 +86,12 @@ docker_build_mock() {
         local reponame=$(mktemp -u XXXXXXXX)
         local repourl=${repo%%,*}
         local priority=${repo##*,}
-        if [ "$priority" == "repourl" ] ; then
+        if [ "$priority" == "$repourl" ] ; then
             unset priority
         else
             priority="priority=$priority\n"
         fi
-        local ADD_REPO_CMD="$EXTRACMD -e \"/^\[base\]/i[${reponame}]\nname=${reponame}\nbaseurl=${repourl}\ngpgcheck=0\nenabled=1\nskip_if_unavailable=1\n${priority}\""
+        local ADD_REPO_CMD="$ADD_REPO_CMD -e \"/^\[base\]/i[${reponame}]\nname=${reponame}\nbaseurl=${repourl}\ngpgcheck=0\nenabled=1\nskip_if_unavailable=1\n${priority}\""
     done
     [ ${#repos[@]} -gt 0 ] \
         && ADD_REPO_CMD="sed $ADD_REPO_CMD -i /etc/mock/${DIST}.cfg"
