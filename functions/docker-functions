@@ -55,7 +55,7 @@ docker_update_mock() {
             ln -s /var/cache/mock/configs /etc/mock
             rm -rf /var/cache/mock/${ROOT_NAME}/yum_cache
             touch /etc/mock/${DIST}.cfg -r \
-                /var/cache/mock/${ROOT_NAME}
+                /var/cache/mock/${ROOT_NAME}/root_cache/cache.tar.gz
             echo 'Current config file:'
             cat /etc/mock/${DIST}.cfg
             chown -R abuild:mock /var/cache/mock
@@ -67,7 +67,7 @@ docker_update_mock() {
 docker_update_sbuild() {
     local MIRROR=$(echo "${APT_SOURCES_CONTENT}" | fgrep deb | head -1 | awk '{print $2}')
     local APT_SOURCES_CONTENT_BASE64=$(echo "${APT_SOURCES_CONTENT}" | base64 -w0)
-    docker run ${DOCKER_OPTS} --privileged --rm -ti\
+    docker run ${DOCKER_OPTS} --privileged --rm \
         -v ${CACHE_DIR}:/srv/images ${CONTAINER_NAME} \
         bash ${BASH_OPTS} -c "
             mkdir -p /srv/images/chroot.d
@@ -124,7 +124,7 @@ docker_build_mock() {
             ln -s /var/cache/mock/configs /etc/mock
             ${ADD_REPO_CMD}
             touch /etc/mock/${DIST}.cfg -r \
-                /var/cache/mock/${ROOT_NAME}
+                /var/cache/mock/${ROOT_NAME}/root_cache/cache.tar.gz
             echo 'Current config file:'
             cat /etc/mock/${DIST}.cfg
             chown -R abuild.mock /home/abuild
